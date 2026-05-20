@@ -9,6 +9,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\CitySearchController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Owner\AnalyticsController;
 use App\Http\Controllers\Owner\OwnerDashboardController;
 use App\Http\Controllers\Owner\OwnerOrderController;
 use App\Http\Controllers\Owner\OwnerProductController;
@@ -61,6 +62,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/products', [OwnerProductController::class, 'index'])->name('products.index');
         Route::get('/orders', [OwnerOrderController::class, 'index'])->name('orders.index');
         Route::patch('/orders/{order}', [OwnerOrderController::class, 'update'])->name('orders.update');
+        Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+        Route::get('/analytics/pdf', [AnalyticsController::class, 'downloadPdf'])->name('analytics.pdf');
         Route::get('/notifications', function () {
             $businessIds = auth()->user()->businesses()->pluck('id')->map(fn ($id) => (string) $id)->toArray();
             $orders = \App\Models\Order::whereIn('business_id', $businessIds)
@@ -88,6 +91,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::post('/businesses/{business}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/products/{product}/reviews', [ReviewController::class, 'storeProduct'])->name('reviews.store.product');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

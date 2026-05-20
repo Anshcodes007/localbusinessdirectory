@@ -53,4 +53,9 @@ class Product extends Model
     {
         return $this->quantity > 0 && $this->stock_status !== self::STOCK_OUT;
     }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'product_id');
+    }
 }
