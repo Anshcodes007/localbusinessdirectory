@@ -9,11 +9,14 @@ test('login screen can be rendered', function () {
 });
 
 test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'role' => 'user',
+    ]);
 
     $response = $this->post('/login', [
-        'email' => $user->email,
+        'login' => $user->email,
         'password' => 'password',
+        'role' => 'user',
     ]);
 
     $this->assertAuthenticated();
@@ -21,11 +24,14 @@ test('users can authenticate using the login screen', function () {
 });
 
 test('users can not authenticate with invalid password', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'role' => 'user',
+    ]);
 
     $this->post('/login', [
-        'email' => $user->email,
+        'login' => $user->email,
         'password' => 'wrong-password',
+        'role' => 'user',
     ]);
 
     $this->assertGuest();

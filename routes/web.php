@@ -45,6 +45,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/my-orders', [CustomerOrderController::class, 'index'])->name('orders.index');
         Route::post('/products/{product}/order', [CustomerOrderController::class, 'store'])->name('orders.store');
         Route::patch('/orders/{order}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
+        Route::get('/notifications', function () {
+            $orders = \App\Models\Order::where('user_id', auth()->id())
+                ->whereIn('status', ['confirmed', 'completed', 'cancelled'])
+                ->orderBy('updated_at', 'desc')
+                ->take(8)
+                ->get(['_id', 'business_name', 'status', 'total_price', 'updated_at']);
+            return response()->json($orders);
+        })->name('notifications.index');
     });
 
     // Business owner dashboard & orders

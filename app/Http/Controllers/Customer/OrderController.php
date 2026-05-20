@@ -16,9 +16,14 @@ class OrderController extends Controller
 
     public function index()
     {
-        $orders = Order::where('user_id', (string) auth()->id())
-            ->latest()
-            ->paginate(10);
+        $status = request('status');
+        $query = Order::where('user_id', (string) auth()->id());
+
+        if ($status && in_array($status, [Order::STATUS_PENDING, Order::STATUS_CONFIRMED, Order::STATUS_COMPLETED, Order::STATUS_CANCELLED], true)) {
+            $query->where('status', $status);
+        }
+
+        $orders = $query->latest()->paginate(10);
 
         return view('customer.orders.index', compact('orders'));
     }
