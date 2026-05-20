@@ -61,6 +61,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/products', [OwnerProductController::class, 'index'])->name('products.index');
         Route::get('/orders', [OwnerOrderController::class, 'index'])->name('orders.index');
         Route::patch('/orders/{order}', [OwnerOrderController::class, 'update'])->name('orders.update');
+        Route::get('/notifications', function () {
+            $businessIds = auth()->user()->businesses()->pluck('id')->map(fn ($id) => (string) $id)->toArray();
+            $orders = \App\Models\Order::whereIn('business_id', $businessIds)
+                ->where('status', \App\Models\Order::STATUS_PENDING)
+                ->orderBy('created_at', 'desc')
+                ->take(8)
+                ->get(['_id', 'user_name', 'business_name', 'status', 'total_price', 'created_at']);
+            return response()->json($orders);
+        })->name('notifications');
     });
 
     Route::middleware('role:business_owner,admin')->group(function () {

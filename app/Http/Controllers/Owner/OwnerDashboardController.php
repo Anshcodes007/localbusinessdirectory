@@ -11,14 +11,17 @@ class OwnerDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $businessIds = $request->user()->businesses()->pluck('id')->map(fn ($id) => (string) $id);
+        $businessIds = $request->user()->businesses()->pluck('id')->map(fn ($id) => (string) $id)->toArray();
+
+        $allOrders = Order::whereIn('business_id', $businessIds)->get();
+
+        $totalRevenue = $allOrders->where('status', '!=', Order::STATUS_CANCELLED)->sum('total_price');
 
         $stats = [
-            'products' => Product::whereIn('business_id', $businessIds)->count(),
-            'orders' => Order::whereIn('business_id', $businessIds)->count(),
-            'pending_orders' => Order::whereIn('business_id', $businessIds)
-                ->where('status', Order::STATUS_PENDING)
-                ->count(),
+            'products'       => Product::whereIn('business_id', $businessIds)->count(),
+            'orders'         => $allOrders->count(),
+            'pending_orders' => $allOrders->where('status', Order::STATUS_PENDING)->count(),
+            'revenue'        => $totalRevenue,
         ];
 
         $recentOrders = Order::whereIn('business_id', $businessIds)
@@ -26,12 +29,19 @@ class OwnerDashboardController extends Controller
             ->take(5)
             ->get();
 
-        $products = Product::whereIn('business_id', $businessIds)
-            ->with('business')
-            ->latest()
-            ->take(8)
-            ->get();
+        // 7-day daily revenue for the mini chart
+        $dailyRevenue = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $dayRevenue = Order::whereIn('business_id', $businessIds)
+                ->where('status', '!=', Order::STATUS_CANCELLED)
+                ->whereDate('created_at', $date)
+                ->sum('total_price');
+            $dailyRevenue[] = ['date' => now()->subDays($i)->format('M d'), 'revenue' => round($dayRevenue, 2)];
+        }
 
-        return view('owner.dashboard', compact('stats', 'recentOrders', 'products'));
+        $business = $request->user()->businesses()->first();
+
+        return view('owner.dashboard', compact('stats', 'recentOrders', 'dailyRevenue', 'business'));
     }
 }
