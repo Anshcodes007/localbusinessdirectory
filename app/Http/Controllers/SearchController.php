@@ -23,8 +23,8 @@ class SearchController extends Controller
             if ($request->filled('q')) {
                 $businessQuery->where('name', 'like', '%'.$request->q.'%');
             }
-            if ($request->filled('category')) {
-                $businessQuery->where('category_id', $request->category);
+            if($request->filled('cat')){
+                $businessQuery->where('category', 'like', '%'.$request->cat.'%');
             }
             if ($request->filled('city')) {
                 $businessQuery->where('city', 'like', '%'.$request->city.'%');
@@ -39,9 +39,6 @@ class SearchController extends Controller
             if ($request->filled('q')) {
                 $productQuery->where('name', 'like', '%'.$request->q.'%');
             }
-            if ($request->filled('category')) {
-                $productQuery->where('category_id', $request->category);
-            }
             if ($request->filled('city')) {
                 $productQuery->whereHas('business', function ($q) use ($request) {
                     $q->where('city', 'like', '%'.$request->city.'%');
@@ -51,6 +48,6 @@ class SearchController extends Controller
             $products = $productQuery->latest()->paginate(12, ['*'], 'product_page');
         }
 
-        return view('search.index', compact('categories', 'businesses', 'products', 'type'));
+        return view('search.index', compact('categories' ,'businesses', 'products', 'type'));
     }
 }

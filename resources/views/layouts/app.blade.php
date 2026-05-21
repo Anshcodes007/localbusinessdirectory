@@ -43,7 +43,7 @@
                     const nameAttr = e.target.getAttribute('name');
                     const idAttr = e.target.getAttribute('id');
                     const isNameField = (nameAttr && nameAttr.toLowerCase().includes('name') && !nameAttr.toLowerCase().includes('username')) || 
-                                       (idAttr && idAttr.toLowerCase().includes('name') && !idAttr.toLowerCase().includes('username'));
+                                    (idAttr && idAttr.toLowerCase().includes('name') && !idAttr.toLowerCase().includes('username'));
                     if (isNameField) {
                         e.target.value = e.target.value.replace(/[0-9]/g, '');
                     }

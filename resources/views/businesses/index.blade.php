@@ -27,15 +27,6 @@
             <input type="text" id="state-input" name="state" value="{{ request('state') }}" placeholder="Enter state..." class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 placeholder-slate-400" aria-label="Search by state">
         </div>
         <div>
-            <label for="category-select" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Category</label>
-            <select id="category-select" name="category" class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 text-slate-600" aria-label="Filter by category">
-                <option value="">All categories</option>
-                @foreach ($categories as $cat)
-                    <option value="{{ $cat->id }}" @selected(request('category') == $cat->id)>{{ $cat->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
             <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm hover:shadow transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 text-sm h-[42px]" aria-label="Apply filters">
                 Apply Filters
             </button>

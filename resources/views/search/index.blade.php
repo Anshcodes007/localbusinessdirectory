@@ -45,7 +45,7 @@
     </form>
 
     <!-- Search Results Header -->
-    @if(request('q') || request('city') || request('category'))
+    @if(request('q') || request('city'))
         <div class="mb-6 pb-4 border-b border-slate-100 flex items-center justify-between">
             <span class="text-sm font-semibold text-slate-400">
                 Search Results for <span class="text-slate-800 font-bold">"{{ request('q') ?: (request('city') ?: 'All Locations') }}"</span>

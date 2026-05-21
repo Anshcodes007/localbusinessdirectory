@@ -26,7 +26,7 @@
     @endif
     <x-alert />
 
-    <section class="mb-12">
+    <!-- <section class="mb-12">
         <h2 class="text-2xl font-bold mb-6">Browse by Category</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             @foreach ($categories as $category)
@@ -36,7 +36,7 @@
                 </a>
             @endforeach
         </div>
-    </section>
+    </section> -->
 
     <section class="mb-12">
         <div class="flex justify-between items-center mb-6">

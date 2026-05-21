@@ -18,7 +18,7 @@
             <label for="prod-search" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Search</label>
             <input type="text" id="prod-search" name="q" value="{{ request('q') }}" placeholder="Search products..." class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 placeholder-slate-400" aria-label="Search by product name">
         </div>
-        <div>
+        <!-- <div>
             <label for="prod-category" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Category</label>
             <select id="prod-category" name="category" class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 text-slate-600" aria-label="Filter by category">
                 <option value="">All categories</option>
@@ -26,7 +26,7 @@
                     <option value="{{ $cat->id }}" @selected(request('category') == $cat->id)>{{ $cat->name }}</option>
                 @endforeach
             </select>
-        </div>
+        </div> -->
         <div>
             <label for="prod-city" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">City</label>
             <input type="text" id="prod-city" name="city" value="{{ request('city') }}" placeholder="Enter city..." class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 placeholder-slate-400" aria-label="Search by city">
@@ -46,8 +46,8 @@
             </button>
         </div>
     </form>
-
-    <!-- Grid Layout -->
+<!-- 
+    Grid Layout -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         @forelse ($products as $product)
             <x-product-card :product="$product" />

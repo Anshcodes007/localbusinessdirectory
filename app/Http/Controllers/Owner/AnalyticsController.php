@@ -38,7 +38,7 @@ class AnalyticsController extends Controller
         $slug  = Str::slug($business->name ?? 'business');
         $month = strtolower(now()->format('F-Y'));
 
-        return $pdf->stream("{$slug}-analytics-report-{$month}.pdf");
+        return $pdf->download("{$slug}-analytics-report-{$month}.pdf");
     }
 
     /**
