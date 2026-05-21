@@ -32,14 +32,20 @@ class BusinessOwnerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'owner_name' => ['required', 'string', 'max:255'],
+            'owner_name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'username' => ['required', 'string', 'max:50', 'alpha_dash', 'unique:'.User::class.',username'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class.',email'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'business_name' => ['required', 'string', 'max:255'],
+            'business_name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'city' => ['required', 'string', 'max:100'],
             'state' => ['required', 'string', 'max:100'],
+            'phone' => ['required', 'digits:10', 'unique:'.Business::class.',phone'],
             'logo' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'owner_name.regex' => 'Business owner name must not contain numbers.',
+            'business_name.regex' => 'Business name must not contain numbers.',
+            'phone.digits' => 'Phone number must be exactly 10 digits.',
+            'phone.unique' => 'Phone number has already been taken.',
         ]);
 
         $owner = User::create([
@@ -58,7 +64,7 @@ class BusinessOwnerController extends Controller
             'email' => $validated['email'],
             'description' => $validated['business_name'].' — '.$validated['city'].', '.$validated['state'],
             'address' => $validated['city'].', '.$validated['state'],
-            'phone' => 'N/A',
+            'phone' => $validated['phone'],
             'is_active' => true,
         ];
 
@@ -89,15 +95,23 @@ class BusinessOwnerController extends Controller
             abort(404);
         }
 
+        $business = $owner->businesses()->first();
+
         $validated = $request->validate([
-            'owner_name' => ['required', 'string', 'max:255'],
+            'owner_name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'username' => ['required', 'string', 'max:50', 'alpha_dash', 'unique:'.User::class.',username,'.$owner->id],
             'email' => ['required', 'email', 'max:255', 'unique:'.User::class.',email,'.$owner->id],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'business_name' => ['required', 'string', 'max:255'],
+            'business_name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'city' => ['required', 'string', 'max:100'],
             'state' => ['required', 'string', 'max:100'],
+            'phone' => ['required', 'digits:10', 'unique:'.Business::class.',phone,' . ($business ? $business->id : '')],
             'logo' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'owner_name.regex' => 'Business owner name must not contain numbers.',
+            'business_name.regex' => 'Business name must not contain numbers.',
+            'phone.digits' => 'Phone number must be exactly 10 digits.',
+            'phone.unique' => 'Phone number has already been taken.',
         ]);
 
         $owner->update([
@@ -110,14 +124,13 @@ class BusinessOwnerController extends Controller
             $owner->update(['password' => Hash::make($validated['password'])]);
         }
 
-        $business = $owner->businesses()->first();
-
         if ($business) {
             $businessData = [
                 'name' => $validated['business_name'],
                 'city' => $validated['city'],
                 'state' => $validated['state'],
                 'email' => $validated['email'],
+                'phone' => $validated['phone'],
             ];
 
             if ($request->hasFile('logo')) {

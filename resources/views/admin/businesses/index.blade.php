@@ -18,24 +18,18 @@
             <tbody>
                 @foreach ($businesses as $business)
                     <tr class="border-t">
-                        <td class="px-4 py-3">{{ $business->name }}</td>
+                        <td class="px-4 py-3 font-semibold text-slate-800">{{ $business->name }}</td>
                         <td class="px-4 py-3">{{ $business->owner->name ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $business->city }}</td>
                         <td class="px-4 py-3">
-                            <form action="{{ route('admin.businesses.update', $business) }}" method="POST">
-                                @csrf @method('PATCH')
-                                <select name="is_active" onchange="this.form.submit()" class="rounded border-gray-300 text-xs">
-                                    <option value="1" @selected($business->is_active)>Active</option>
-                                    <option value="0" @selected(! $business->is_active)>Inactive</option>
-                                </select>
-                            </form>
+                            @if ($business->is_active)
+                                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                            @else
+                                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Inactive</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3">
-                            <a href="{{ route('businesses.show', $business) }}" class="text-indigo-600">View</a>
-                            <form action="{{ route('admin.businesses.destroy', $business) }}" method="POST" class="inline" onsubmit="return confirm('Delete?')">
-                                @csrf @method('DELETE')
-                                <button class="text-red-600 ml-2">Delete</button>
-                            </form>
+                            <a href="{{ route('businesses.show', $business) }}" class="text-indigo-600 hover:text-indigo-900 font-bold">View Details</a>
                         </td>
                     </tr>
                 @endforeach

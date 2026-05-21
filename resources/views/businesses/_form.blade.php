@@ -6,15 +6,7 @@
     <label class="block text-sm font-medium">Description</label>
     <textarea name="description" rows="4" class="w-full rounded border-gray-300" required>{{ old('description', $business->description ?? '') }}</textarea>
 </div>
-<div>
-    <label class="block text-sm font-medium">Category</label>
-    <select name="category_id" class="w-full rounded border-gray-300" required>
-        <option value="">Select category</option>
-        @foreach ($categories as $cat)
-            <option value="{{ $cat->id }}" @selected(old('category_id', $business->category_id ?? '') == $cat->id)>{{ $cat->name }}</option>
-        @endforeach
-    </select>
-</div>
+
 <div>
     <label class="block text-sm font-medium">City</label>
     <input type="text" name="city" value="{{ old('city', $business->city ?? '') }}" class="w-full rounded border-gray-300" required>

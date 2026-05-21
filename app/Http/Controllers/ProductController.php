@@ -62,7 +62,7 @@ class ProductController extends Controller
         $this->authorizeBusinessOwner($business);
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'description' => ['required', 'string'],
             'category_id' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
@@ -71,6 +71,8 @@ class ProductController extends Controller
             'quantity' => ['required', 'integer', 'min:0'],
             'stock_status' => ['required', 'in:in_stock,low_stock,out_of_stock'],
             'image' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'name.regex' => 'Product name must not contain numbers.',
         ]);
 
         if ($request->hasFile('image')) {
@@ -103,7 +105,7 @@ class ProductController extends Controller
         $this->authorizeBusinessOwner($product->business);
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'description' => ['required', 'string'],
             'category_id' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
@@ -112,6 +114,8 @@ class ProductController extends Controller
             'quantity' => ['required', 'integer', 'min:0'],
             'stock_status' => ['required', 'in:in_stock,low_stock,out_of_stock'],
             'image' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'name.regex' => 'Product name must not contain numbers.',
         ]);
 
         if ($request->hasFile('image')) {
@@ -151,7 +155,7 @@ class ProductController extends Controller
     {
         $user = auth()->user();
 
-        if (! $user->isAdmin() && (string) $business->user_id !== (string) $user->id) {
+        if ((string) $business->user_id !== (string) $user->id) {
             abort(403, 'You can only manage products for your own businesses.');
         }
     }

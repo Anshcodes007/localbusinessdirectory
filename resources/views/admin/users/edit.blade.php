@@ -14,14 +14,18 @@
             <input type="email" name="email" value="{{ old('email', $user->email) }}" class="w-full rounded border-gray-300" required>
         </div>
         <div>
-            <label class="block text-sm font-medium">Role</label>
-            <select name="role" class="w-full rounded border-gray-300" required>
-                @foreach (['admin', 'business_owner', 'customer'] as $role)
-                    <option value="{{ $role }}" @selected(old('role', $user->role) === $role)>{{ $role }}</option>
-                @endforeach
-            </select>
+            <label class="block text-sm font-medium text-gray-500">Role</label>
+            <p class="text-sm font-semibold text-gray-800 bg-gray-50 p-2 rounded border border-gray-200">Customer/User</p>
         </div>
-        <button class="bg-indigo-600 text-white px-4 py-2 rounded">Update</button>
+        <div>
+            <label class="block text-sm font-medium">New Password (leave blank to keep current)</label>
+            <input type="password" name="password" class="w-full rounded border-gray-300">
+        </div>
+        <div>
+            <label class="block text-sm font-medium">Confirm New Password</label>
+            <input type="password" name="password_confirmation" class="w-full rounded border-gray-300">
+        </div>
+        <button class="bg-indigo-600 text-white px-4 py-2 rounded w-full font-bold">Update Details</button>
     </form>
 </div>
 @endsection

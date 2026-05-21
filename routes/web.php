@@ -75,7 +75,7 @@ Route::middleware('auth')->group(function () {
         })->name('notifications');
     });
 
-    Route::middleware('role:business_owner,admin')->group(function () {
+    Route::middleware('role:business_owner')->group(function () {
         Route::get('/businesses/create', [BusinessController::class, 'create'])->name('businesses.create');
         Route::post('/businesses', [BusinessController::class, 'store'])->name('businesses.store');
         Route::get('/my-businesses', [BusinessController::class, 'myBusinesses'])->name('businesses.my');
@@ -114,9 +114,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
     Route::get('/businesses', [AdminBusinessController::class, 'index'])->name('businesses.index');
-    Route::patch('/businesses/{business}', [AdminBusinessController::class, 'update'])->name('businesses.update');
-    Route::delete('/businesses/{business}', [AdminBusinessController::class, 'destroy'])->name('businesses.destroy');
-    Route::resource('categories', AdminCategoryController::class)->except(['show']);
+    Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
 });
 
 require __DIR__.'/auth.php';

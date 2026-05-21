@@ -33,10 +33,10 @@
 
     $avgRating = $business->reviews && $business->reviews->count() > 0 
         ? number_format($business->reviews->avg('rating'), 1) 
-        : '4.5';
+        : '0.0';
     $reviewsCount = $business->reviews && $business->reviews->count() > 0 
         ? $business->reviews->count() 
-        : 12; // Realistic placeholder if no reviews seeded
+        : 0;
 @endphp
 
 <a href="{{ route('businesses.show', $business) }}" class="group bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col h-full focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none" aria-label="View details of business {{ $business->name }}">

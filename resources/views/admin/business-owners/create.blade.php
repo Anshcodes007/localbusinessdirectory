@@ -33,6 +33,10 @@
             <label class="block text-sm font-medium">Business Name</label>
             <input type="text" name="business_name" value="{{ old('business_name') }}" class="w-full rounded border-gray-300" required>
         </div>
+        <div>
+            <label class="block text-sm font-medium">Phone Number (10 digits, unique)</label>
+            <input type="text" name="phone" value="{{ old('phone') }}" class="w-full rounded border-gray-300" placeholder="e.g. 1234567890" required>
+        </div>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium">City</label>

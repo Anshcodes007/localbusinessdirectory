@@ -14,8 +14,10 @@ class AdminDashboardController extends Controller
     {
         $stats = [
             'business_owners' => User::where('role', User::ROLE_BUSINESS_OWNER)->count(),
+            'users' => User::where('role', User::ROLE_USER)->count(),
             'businesses' => Business::count(),
             'products' => Product::count(),
+            'categories' => \App\Models\Category::count(),
             'orders' => Order::count(),
         ];
 

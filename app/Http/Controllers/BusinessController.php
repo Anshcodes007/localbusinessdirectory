@@ -53,14 +53,16 @@ class BusinessController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'description' => ['required', 'string'],
-            'category_id' => ['required', 'string'],
+            'category_id' => ['nullable', 'string'],
             'city' => ['required', 'string', 'max:100'],
             'address' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['required', 'email', 'max:255'],
             'logo' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'name.regex' => 'Business name must not contain numbers.',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -89,14 +91,16 @@ class BusinessController extends Controller
         $this->authorizeOwner($business);
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
             'description' => ['required', 'string'],
-            'category_id' => ['required', 'string'],
+            'category_id' => ['nullable', 'string'],
             'city' => ['required', 'string', 'max:100'],
             'address' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['required', 'email', 'max:255'],
             'logo' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'name.regex' => 'Business name must not contain numbers.',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -147,7 +151,7 @@ class BusinessController extends Controller
     {
         $user = auth()->user();
 
-        if (! $user->isAdmin() && (string) $business->user_id !== (string) $user->id) {
+        if ((string) $business->user_id !== (string) $user->id) {
             abort(403, 'You can only manage your own businesses.');
         }
     }
