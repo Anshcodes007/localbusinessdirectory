@@ -121,21 +121,29 @@ class AnalyticsController extends Controller
             ];
         }
 
-        // ── Top Rated Products ──────────────────────────────────
+        // ── Top & Lowest Rated Products ────────────────────────
         $productIds = Product::whereIn('business_id', $businessIds)->pluck('id')->map(fn ($id) => (string) $id)->toArray();
         $productReviews = Review::whereIn('product_id', $productIds)->get()->groupBy('product_id');
 
         $topRatedProducts = collect();
+        $lowestRatedProducts = collect();
+
         foreach ($productReviews as $pid => $reviews) {
             $product = Product::find($pid);
             if (!$product) continue;
-            $topRatedProducts->push([
+            
+            $itemData = [
                 'name'        => $product->name,
                 'avgRating'   => round($reviews->avg('rating'), 1),
                 'reviewCount' => $reviews->count(),
-            ]);
+            ];
+            
+            $topRatedProducts->push($itemData);
+            $lowestRatedProducts->push($itemData);
         }
+        
         $topRatedProducts = $topRatedProducts->sortByDesc('avgRating')->take(5)->values();
+        $lowestRatedProducts = $lowestRatedProducts->sortBy('avgRating')->take(5)->values();
 
         // ── Best Selling Products ───────────────────────────────
         $productSales = [];
@@ -156,7 +164,7 @@ class AnalyticsController extends Controller
         $recentReviews = Review::whereIn('business_id', $businessIds)
             ->with('user', 'product')
             ->latest()
-            ->take(8)
+            ->take(10)
             ->get();
 
         // ── Insights ────────────────────────────────────────────
@@ -186,9 +194,28 @@ class AnalyticsController extends Controller
             $insights[] = "You have {$repeatCustomers} repeat customer" . ($repeatCustomers > 1 ? 's' : '') . " — loyalty is growing!";
         }
 
+        // ── Top Positive & Negative Reviews (For PDF) ───────────
+        $topPositiveReviews = Review::whereIn('business_id', $businessIds)
+            ->where('rating', '>=', 4)
+            ->with('user', 'product')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $topNegativeReviews = Review::whereIn('business_id', $businessIds)
+            ->where('rating', '<=', 2)
+            ->with('user', 'product')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $lowRatingWarning = ($avgRating < 3 && $totalReviews > 0);
+
         return compact(
             'kpis', 'ratingBreakdown', 'dailyRevenue', 'reviewTrend',
-            'topRatedProducts', 'bestSellingProducts', 'recentReviews', 'insights'
+            'topRatedProducts', 'lowestRatedProducts', 'bestSellingProducts', 
+            'recentReviews', 'insights', 'lowRatingWarning',
+            'topPositiveReviews', 'topNegativeReviews'
         );
     }
 }

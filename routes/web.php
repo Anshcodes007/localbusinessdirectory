@@ -92,6 +92,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/businesses/{business}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
     Route::post('/products/{product}/reviews', [ReviewController::class, 'storeProduct'])->name('reviews.store.product');
+    Route::post('/orders/{order}/review', [\App\Http\Controllers\OrderReviewController::class, 'store'])->name('orders.review.store');
+    Route::put('/reviews/{review}', [\App\Http\Controllers\OrderReviewController::class, 'update'])->name('reviews.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

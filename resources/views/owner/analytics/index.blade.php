@@ -15,6 +15,18 @@
     </a>
 </div>
 
+@if ($lowRatingWarning)
+    <div class="mb-6 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 p-5 flex items-start gap-3 shadow-sm">
+        <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div>
+            <h4 class="font-bold text-sm">Action Needed</h4>
+            <p class="text-xs text-amber-700 mt-0.5">⚠ Customer satisfaction is below target. Your average rating is currently {{ $ratingBreakdown['average'] }} stars.</p>
+        </div>
+    </div>
+@endif
+
 {{-- ─── KPI CARDS ─── --}}
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
     {{-- Revenue --}}
@@ -143,38 +155,73 @@
         </div>
     </div>
 
-    {{-- Top Rated Products --}}
-    <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-        <h3 class="text-sm font-bold text-slate-800 mb-4">Top Rated Products</h3>
-        @if ($topRatedProducts->isEmpty())
-            <p class="text-sm text-slate-400 text-center py-8">No product reviews yet</p>
-        @else
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-100">
-                            <th class="text-left py-3 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Product</th>
-                            <th class="text-center py-3 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Rating</th>
-                            <th class="text-right py-3 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Reviews</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-50">
-                        @foreach ($topRatedProducts as $p)
-                            <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="py-3 px-2 font-medium text-slate-800">{{ $p['name'] }}</td>
-                                <td class="py-3 px-2 text-center">
-                                    <div class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-xs font-bold">
-                                        <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                                        {{ $p['avgRating'] }}
-                                    </div>
-                                </td>
-                                <td class="py-3 px-2 text-right text-slate-500">{{ $p['reviewCount'] }}</td>
+    {{-- Top & Lowest Rated Products --}}
+    <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex flex-col gap-6">
+        <div>
+            <h3 class="text-sm font-bold text-slate-800 mb-4">Top Rated Products</h3>
+            @if ($topRatedProducts->isEmpty())
+                <p class="text-sm text-slate-400 text-center py-4">No product reviews yet</p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-100">
+                                <th class="text-left py-2 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Product</th>
+                                <th class="text-center py-2 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Rating</th>
+                                <th class="text-right py-2 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Reviews</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @foreach ($topRatedProducts as $p)
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="py-2.5 px-2 font-medium text-slate-800">{{ $p['name'] }}</td>
+                                    <td class="py-2.5 px-2 text-center">
+                                        <div class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                                            <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                            {{ $p['avgRating'] }}
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 px-2 text-right text-slate-500">{{ $p['reviewCount'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+
+        <div class="border-t border-slate-100 pt-6">
+            <h3 class="text-sm font-bold text-slate-800 mb-4">Lowest Rated Products</h3>
+            @if ($lowestRatedProducts->isEmpty())
+                <p class="text-sm text-slate-400 text-center py-4">No product reviews yet</p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-100">
+                                <th class="text-left py-2 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Product</th>
+                                <th class="text-center py-2 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Rating</th>
+                                <th class="text-right py-2 px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Reviews</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @foreach ($lowestRatedProducts as $p)
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="py-2.5 px-2 font-medium text-slate-800">{{ $p['name'] }}</td>
+                                    <td class="py-2.5 px-2 text-center">
+                                        <div class="inline-flex items-center gap-1 bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                                            <svg class="w-3.5 h-3.5 text-rose-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                            {{ $p['avgRating'] }}
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 px-2 text-right text-slate-500">{{ $p['reviewCount'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
     </div>
 </div>
 
@@ -211,11 +258,11 @@
 
     {{-- Recent Reviews --}}
     <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-        <h3 class="text-sm font-bold text-slate-800 mb-4">Recent Reviews</h3>
+        <h3 class="text-sm font-bold text-slate-800 mb-4">Recent Customer Reviews</h3>
         @if ($recentReviews->isEmpty())
             <p class="text-sm text-slate-400 text-center py-8">No reviews yet</p>
         @else
-            <div class="space-y-3 max-h-96 overflow-y-auto">
+            <div class="space-y-4 max-h-[500px] overflow-y-auto pr-1">
                 @foreach ($recentReviews as $review)
                     @php
                         $words = explode(' ', $review->user->name ?? 'U');
@@ -226,24 +273,33 @@
                         $gradients = ['from-indigo-500 to-violet-500', 'from-emerald-500 to-teal-500', 'from-amber-500 to-orange-500', 'from-rose-500 to-pink-500', 'from-sky-500 to-cyan-500'];
                         $gradient = $gradients[abs($hash) % count($gradients)];
                     @endphp
-                    <div class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50/50 hover:bg-slate-50 border border-slate-100 transition-colors">
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br {{ $gradient }} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">{{ $initials }}</div>
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-0.5">
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
                                 <span class="text-xs font-bold text-slate-800">{{ $review->user->name ?? 'User' }}</span>
+                                @if ($review->verified_purchase)
+                                    <span class="inline-flex items-center gap-0.5 text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                                        <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        Verified Purchase
+                                    </span>
+                                @endif
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border {{ $review->sentimentClass() }}">{{ $review->sentimentLabel() }}</span>
                             </div>
-                            <div class="flex mb-1">
+                            <div class="flex mb-1.5">
                                 @for ($i = 1; $i <= 5; $i++)
-                                    <svg class="w-3 h-3 {{ $i <= $review->rating ? 'text-amber-400' : 'text-slate-200' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    <svg class="w-3.5 h-3.5 {{ $i <= $review->rating ? 'text-amber-400' : 'text-slate-200' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                                 @endfor
                             </div>
-                            <p class="text-xs text-slate-600 line-clamp-2">{{ $review->comment }}</p>
+                            @if ($review->title)
+                                <h4 class="text-xs font-bold text-slate-800 mb-0.5">{{ $review->title }}</h4>
+                            @endif
+                            <p class="text-xs text-slate-600 leading-relaxed">{{ $review->comment }}</p>
                             @if ($review->product)
-                                <p class="text-[10px] text-indigo-500 font-medium mt-0.5">{{ $review->product->name }}</p>
+                                <p class="text-[10px] text-indigo-500 font-medium mt-1">Product: {{ $review->product->name }}</p>
                             @endif
                         </div>
-                        <span class="text-[10px] text-slate-400 flex-shrink-0">{{ $review->created_at ? $review->created_at->diffForHumans(null, true) : '' }}</span>
+                        <span class="text-[10px] text-slate-400 flex-shrink-0">{{ $review->created_at ? $review->created_at->format('M d, Y') : '' }}</span>
                     </div>
                 @endforeach
             </div>

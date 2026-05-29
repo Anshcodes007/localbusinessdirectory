@@ -1,0 +1,323 @@
+================================================================================
+LOCAL BUSINESS DIRECTORY SYSTEM
+================================================================================
+A Laravel 11 & MongoDB Based Business Catalog, Reviews, and Analytics Application
+
+This document provides a comprehensive technical guide of the system architecture,
+request flows, data models, services, controllers, and security invariants.
+
+================================================================================
+1. SYSTEM ARCHITECTURE & ENVIRONMENT
+================================================================================
+The application is built on the Laravel 11 PHP framework, following the MVC
+(Model-View-Controller) design pattern.
+
+- DATABASE: MongoDB is used as the primary database system. The database is
+  integrated using the official `mongodb/laravel-mongodb` package, enabling
+  Eloquent-like models to interact seamlessly with MongoDB collections.
+- AUTHENTICATION: Built on Laravel Breeze (Session-based authentication), featuring
+  three distinct role-based permissions:
+  1. 'admin' (Administrator) - System monitoring, customer, and owner management.
+  2. 'business_owner' (Business Owner) - Business profile, products, order management, and analytics.
+  3. 'user' (Customer) - Public listing explorer, orders placement, and reviews.
+- FRONT-END STACK: Blade template engine styled with Tailwind CSS, custom high-contrast
+  CSS layouts for printed PDF analytics reports, and Chart.js for data visualization.
+- DIRECTORY STRUCTURE:
+  - `app/Models`: Eloquent models mapped to MongoDB collections.
+  - `app/Http/Controllers`: Controllers handling incoming HTTP requests.
+  - `app/Http/Middleware`: Middleware guards validating authentication/authorization.
+  - `app/Http/Requests`: Custom validation rules for inputs.
+  - `app/Services`: Domain-specific business logic (e.g., OrderService).
+  - `bootstrap/app.php`: Service container bootstrapping and middleware aliases configuration.
+  - `routes/`: Routing files (web.php for web views/APIs, auth.php for Breeze auth).
+  - `resources/views`: UI presentation templates.
+
+================================================================================
+2. DATABASE SCHEMAS & RELATIONSHIPS (app/Models)
+================================================================================
+
+All models extend `MongoDB\Laravel\Eloquent\Model` or class authenticators and use
+the `mongodb` connection.
+
+- User.php (Collection: `users`)
+  - Attributes: name, username, email, password, role
+  - Constants: ROLE_ADMIN = 'admin', ROLE_BUSINESS_OWNER = 'business_owner', ROLE_USER = 'user'
+  - Casts: email_verified_at -> datetime, password -> hashed
+  - Helper methods:
+    - isAdmin(): bool (Checks if role is admin)
+    - isBusinessOwner(): bool (Checks if role is business_owner)
+    - isUser() / isCustomer(): bool (Checks if role is user)
+  - Relationships:
+    - businesses(): hasMany Business (A business owner can own multiple businesses)
+    - reviews(): hasMany Review (A user can write multiple reviews)
+    - orders(): hasMany Order (A user can place multiple orders)
+
+- Business.php (Collection: `businesses`)
+  - Attributes: user_id, category_id (nullable), name, description, city, state, address, phone, email, logo (storage path), is_active
+  - Casts: is_active -> boolean
+  - Relationships:
+    - owner(): belongsTo User
+    - category(): belongsTo Category (nullable)
+    - products(): hasMany Product (Products catalog under the business)
+    - reviews(): hasMany Review (All reviews written for this business)
+    - orders(): hasMany Order (All customer orders placed for products of this business)
+
+- Product.php (Collection: `products`)
+  - Attributes: business_id, category_id (nullable), name, description, price, discount, gst, image (storage path), stock_status, quantity
+  - Stock Constants: STOCK_IN = 'in_stock', STOCK_LOW = 'low_stock', STOCK_OUT = 'out_of_stock'
+  - Casts: price -> float, discount -> float, gst -> float, quantity -> integer
+  - Helper methods:
+    - isInStock(): bool (Returns true if quantity > 0 and stock_status !== 'out_of_stock')
+  - Relationships:
+    - business(): belongsTo Business
+    - category(): belongsTo Category (nullable)
+    - reviews(): hasMany Review (Reviews specifically submitted for this product)
+
+- Review.php (Collection: `reviews`)
+  - Attributes: user_id, business_id, product_id (nullable), rating, title, comment, verified_purchase
+  - Casts: rating -> integer, verified_purchase -> boolean
+  - Helper/Scope methods:
+    - scopeForBusiness($query, $businessId): Filters reviews that are directly on a business profile (product_id is null).
+    - scopeForProduct($query, $productId): Filters reviews that target a specific product.
+    - sentimentLabel(): string (Returns 'Positive' for rating >= 4, 'Neutral' for rating === 3, else 'Negative')
+    - sentimentClass(): string (Returns contextual color styling classes for the UI sentiment badges)
+  - Relationships:
+    - user(): belongsTo User
+    - business(): belongsTo Business
+    - product(): belongsTo Product (nullable)
+
+- Order.php (Collection: `orders`)
+  - Attributes: user_id, user_name, user_email, business_id, business_name, items (array of products ordered), total_price, status
+  - Status Constants: STATUS_PENDING = 'pending', STATUS_CONFIRMED = 'confirmed', STATUS_COMPLETED = 'completed', STATUS_CANCELLED = 'cancelled'
+  - Casts: items -> array, total_price -> float
+  - Helper methods:
+    - isCancellable(): bool (Returns true if status is 'pending' or 'confirmed')
+    - statusLabel(): string (Returns ucfirst format of status)
+  - Relationships:
+    - customer(): belongsTo User
+    - business(): belongsTo Business
+
+- Category.php (Collection: `categories`)
+  - Attributes: name, slug, description
+  - Relationships:
+    - businesses(): hasMany Business
+    - products(): hasMany Product
+
+================================================================================
+3. CORE BUSINESS SERVICES (app/Services)
+================================================================================
+
+- OrderService.php
+  Centralizes stock, pricing, and order calculations.
+  - placeOrder(User $user, Product $product, int $quantity): Order
+    - Checks that $quantity is at least 1.
+    - Validates that the business exists and is active.
+    - Validates that the product has enough stock.
+    - Decrements the product quantity.
+    - Synchronizes the product stock status using `syncStockStatus()`.
+    - Saves the updated product.
+    - Calculates the line total applying discount and GST.
+    - Creates and returns a new Order record with a default status of `pending`.
+  - calculateLineTotal(float $price, int $quantity, float $discount = 0, float $gst = 0): float
+    - Subtotal = Price * Quantity
+    - After Discount = Subtotal - (Subtotal * (Discount / 100))
+    - Total with GST = After Discount + (After Discount * (GST / 100))
+    - Returns the rounded value with 2 decimal places.
+  - cancelOrder(Order $order): void
+    - Rejects operation if the order is already cancelled or is not in a cancellable status.
+    - Restores the stock of all products listed in the order.
+    - Updates order status to `cancelled`.
+  - restoreStock(Order $order): void
+    - Iterates over items. Finds each product, increments its quantity, synchronizes its stock status, and saves.
+  - syncStockStatus(Product $product): void
+    - If quantity <= 0: sets quantity to 0 and status to `out_of_stock`.
+    - If quantity is between 1 and 5: sets status to `low_stock`.
+    - If quantity > 5: sets status to `in_stock`.
+
+================================================================================
+4. MIDDLEWARE & ACCESS GUARDS
+================================================================================
+
+- RoleMiddleware.php
+  - Intercepts requests and checks if the authenticated user has one of the allowed roles.
+  - Usage: Registered in `bootstrap/app.php` with alias `'role'`.
+  - Routes can be wrapped inside middleware groups such as `middleware('role:admin')` or `middleware('role:business_owner')`.
+  - Aborts request with an HTTP 403 error page if the roles do not match.
+
+================================================================================
+5. ROUTES AND URI MAPPINGS (routes/web.php)
+================================================================================
+
+All routes are grouped into Public, Authenticated general, and Role-specific blocks:
+
+- PUBLIC ROUTES (Open to guests and all users)
+  - GET `/` -> HomeController@index (Landing page)
+  - GET `/businesses` -> BusinessController@index (Browse/Filter businesses)
+  - GET `/businesses/city/search` -> CitySearchController@index (Browse businesses by city)
+  - GET `/products` -> ProductController@index (Browse products list)
+  - GET `/search` -> SearchController@index (Global elastic search)
+  - GET `/businesses/{business}` -> BusinessController@show (Public business details & reviews)
+  - GET `/products/{product}` -> ProductController@show (Public product details)
+
+- AUTHENTICATED USER ROUTES (Route::middleware('auth'))
+  - GET `/dashboard` -> Redirects user to their role-specific dashboard.
+  - POST `/businesses/{business}/reviews` -> ReviewController@store (Submit business review)
+  - POST `/products/{product}/reviews` -> ReviewController@storeProduct (Submit product review)
+  - Profile Management:
+    - GET `/profile` -> ProfileController@edit
+    - PATCH `/profile` -> ProfileController@update
+    - DELETE `/profile` -> ProfileController@destroy
+
+- CUSTOMER / USER ROUTES (Route::middleware('role:user'))
+  - GET `/user/dashboard` -> UserDashboardController@index (View stats & recent activities)
+  - GET `/my-orders` -> CustomerOrderController@index (Customer orders log)
+  - POST `/products/{product}/order` -> CustomerOrderController@store (Place an order)
+  - PATCH `/orders/{order}/cancel` -> CustomerOrderController@cancel (Cancel pending/confirmed order)
+  - GET `/notifications` -> Inline closure returning recent customer order updates in JSON.
+
+- BUSINESS OWNER ROUTES (Route::middleware('role:business_owner') prefix: 'owner')
+  - GET `/owner/dashboard` -> OwnerDashboardController@index (Owner dashboard stats & 7-day revenue charts)
+  - GET `/owner/products` -> OwnerProductController@index (List of products owned by business)
+  - GET `/owner/orders` -> OwnerOrderController@index (Manage orders placed to owner's businesses)
+  - PATCH `/owner/orders/{order}` -> OwnerOrderController@update (Confirm, complete, or cancel order)
+  - GET `/owner/analytics` -> AnalyticsController@index (Rich interactive visual graphs dashboard)
+  - GET `/owner/analytics/pdf` -> AnalyticsController@downloadPdf (Generates & downloads analytics PDF report)
+  - GET `/owner/notifications` -> Inline closure returning business owner's pending orders count in JSON.
+  - GET/POST `/businesses/create`, `/businesses` -> BusinessController@create, store
+  - GET/PUT/DELETE `/businesses/{business}/edit`, `/businesses/{business}` -> BusinessController@edit, update, destroy
+  - GET/POST `/businesses/{business}/products/create`, `/businesses/{business}/products` -> ProductController@create, store
+  - GET/PUT/DELETE `/products/{product}/edit`, `/products/{product}` -> ProductController@edit, update, destroy
+
+- SYSTEM ADMINISTRATOR ROUTES (Route::middleware(['auth', 'role:admin']) prefix: 'admin')
+  - GET `/admin` -> AdminDashboardController@index (Admin system-wide stats)
+  - GET `/admin/businesses` -> AdminBusinessController@index (View lists of all businesses. Toggle active status or delete)
+  - GET `/admin/categories` -> AdminCategoryController@index (Lists categories)
+  - Business Owner CRUD:
+    - GET/POST `/admin/business-owners`, `/admin/business-owners/create` -> BusinessOwnerController@index, create, store
+    - GET/PUT/DELETE `/admin/business-owners/{owner}/edit`, `/admin/business-owners/{owner}` -> BusinessOwnerController@edit, update, destroy
+  - User CRUD (Registered Customers):
+    - GET `/admin/users` -> AdminUserController@index
+    - GET/PUT/DELETE `/admin/users/{user}/edit`, `/admin/users/{user}` -> AdminUserController@edit, update, destroy
+
+================================================================================
+6. FILE-BY-FILE CONTROLLER EXPLANATION
+================================================================================
+
+- app/Http/Controllers/HomeController.php
+  - Handles rendering the landing home index page. Retrieves list of dynamic categories, featured active businesses, and latest products. Features auto-recovery if MongoDB database is down, rendering an informative offline page.
+- app/Http/Controllers/BusinessController.php
+  - index(): Paginated business list. Filters by category, city, state, or name text query.
+  - show(): Loads business profile details along with category, owner, products list, and reviews.
+  - create()/store(): Forms and processing to allow owners to create new businesses.
+  - edit()/update(): Allows owners to edit details like description, logo, address, phone. Checks owner permissions via `authorizeOwner()`.
+  - destroy(): Deletes the business, deletes its logo and product images from storage, and deletes all associated products.
+- app/Http/Controllers/ProductController.php
+  - index(): List products globally. Filters by category, city (using whereHas on business relation), name query, or stock status.
+  - show(): Show a single product page.
+  - create()/store(): Allows owner to add products to a specific business. Invokes `OrderService@syncStockStatus()` before storing.
+  - edit()/update()/destroy(): CRUD options for products owned by the business owner.
+- app/Http/Controllers/ReviewController.php
+  - store(): Submits business reviews.
+    - Prevents owners from reviewing their own business.
+    - Enforces rating parameters (1-5), titles, and comments.
+    - Automatically checks if user has a completed order from this business to flag the review as `verified_purchase` (boolean).
+    - Employs `updateOrCreate` to restrict a user to a single review per business.
+  - storeProduct(): Submits product reviews.
+    - Prevents owners from reviewing their own products.
+    - Automatically checks completed order items for the target product to flag as `verified_purchase`.
+    - Restricts users to one review per product.
+- app/Http/Controllers/CitySearchController.php
+  - Queries active businesses located in a specific city or state. Redirects with error messages if queries are empty.
+- app/Http/Controllers/SearchController.php
+  - Global searching module allowing users to query either businesses, products, or both, filtering by name, category, and city.
+- app/Http/Controllers/ProfileController.php
+  - Standard user profile views. Allows password updates and deleting accounts.
+- app/Http/Controllers/Customer/OrderController.php
+  - index(): Lists customer's orders history. Allows filtering by order status.
+  - store(): Places a new product order. Calls `OrderService@placeOrder()`.
+  - cancel(): Cancels a pending or confirmed order. Calls `OrderService@cancelOrder()`.
+- app/Http/Controllers/Owner/OwnerDashboardController.php
+  - Renders dashboard statistics for business owners: total revenue, product counts, total orders count, pending orders. Computes a 7-day daily revenue array to populate a mini chart.
+- app/Http/Controllers/Owner/OwnerOrderController.php
+  - Lists orders placed at the owner's businesses.
+  - update(): Changes order status. Restores stock when set to `cancelled`. Prevents reactivation of cancelled orders.
+- app/Http/Controllers/Owner/OwnerProductController.php
+  - Displays business owner's product listings in a paginated grid.
+- app/Http/Controllers/Owner/AnalyticsController.php
+  - index(): Fetches and compiles business owner analytics dataset.
+  - downloadPdf(): Loads view `owner.analytics.pdf`, compiles data, converts to PDF using DomPDF Facade, and starts a download.
+  - getAnalyticsData(): Compiles metrics:
+    - KPIs: Total revenue, total orders, pending orders, repeat customers (purchased multiple times), total reviews count, average rating.
+    - Rating Breakdown: Distribution count of stars 1-5, and percentage of reviews that are verified purchases.
+    - Daily Revenue: 30-day chronological list of daily total sales.
+    - Review Trend: 30-day chronological list of reviews count per day.
+    - Top Rated Products: Sorts products owned by average star rating.
+    - Best Selling Products: Collects total items ordered and revenues per product name.
+    - Recent Reviews: Retrieves the latest 8 reviews on owner's businesses.
+    - Insights: Auto-generates sentences describing performance, top seller products, rating status, pending alerts, repeat customers, and buyer trust indicators.
+- app/Http/Controllers/Admin/AdminDashboardController.php
+  - Statistics summary for the system administrator (counts of owners, users, businesses, products, categories, orders).
+- app/Http/Controllers/Admin/BusinessController.php
+  - View only index listing all businesses. Admin can toggle `is_active` status or delete businesses.
+- app/Http/Controllers/Admin/BusinessOwnerController.php
+  - View lists of business owners.
+  - store(): Allows admin to register new owners. Generates a default business profile linked to them.
+  - edit()/update(): Allows admin to edit owner profile details and their primary business. Restricts updates only to users who already possess the ROLE_BUSINESS_OWNER. Does not allow changing roles.
+  - destroy(): Deletes the owner account, deletes their businesses, deletes associated products, and deletes related orders.
+- app/Http/Controllers/Admin/UserController.php
+  - View customer lists.
+  - edit()/update(): Edit user details. Restricts editing to users who already have ROLE_USER. Does not allow changing roles.
+  - destroy(): Deletes user account.
+- app/Http/Controllers/Admin/CategoryController.php
+  - Displays categories list. Stores and updates category names and slugs.
+
+================================================================================
+7. CORE USER JOURNEYS & REQUEST FLOWS
+================================================================================
+
+- ORDER PLACEMENT FLOW:
+  1. User (customer) clicks "Order" button on product detail or business profile page.
+  2. POST request sent to `/products/{product}/order` carrying quantity input.
+  3. Mapped to `Customer\OrderController@store`.
+  4. Calls `OrderService@placeOrder`.
+  5. If validation passes (stock is available, business is active), the product quantity is decremented, status is updated ('low_stock' if <= 5, 'out_of_stock' if <= 0), and an Order record is saved in MongoDB as `pending`.
+  6. User is redirected to `/my-orders` displaying success.
+
+- ORDER CANCELLATION FLOW:
+  1. Customer cancels order via GET/PATCH `/orders/{order}/cancel` (or Business Owner updates status to `cancelled` via POST to `/owner/orders/{order}`).
+  2. Mapped to `Customer\OrderController@cancel` (or `Owner\OwnerOrderController@update`).
+  3. Calls `OrderService@cancelOrder`.
+  4. Calls `OrderService@restoreStock` which finds order items, increments their quantity, syncs their stock status, and saves.
+  5. Order status is marked `cancelled` in the database.
+
+- RATING & REVIEWS SYSTEM FLOW:
+  1. A user visits a business profile or product page.
+  2. If authenticated as a customer, they can click "Write a Review", opening an interactive star picker modal.
+  3. Submits form containing rating (1-5 stars), title, and comments.
+  4. Mapped to `ReviewController@store` or `storeProduct`.
+  5. The controller runs checks:
+     - Rejects if user is the business owner (owners cannot review their own businesses).
+     - Searches the `orders` collection for a completed order under the user's ID for this business/product.
+     - If a completed order exists, `verified_purchase` is flagged as `true`, rendering a green "Verified Purchase" badge on their review card.
+     - Saves the review. If the user had reviewed this business/product before, the database record is updated (one review per user restriction).
+     - The business detail recalculates review summaries. No dummy/default fallback ratings exist; the average is computed directly from user submissions.
+
+================================================================================
+8. FORM VALIDATIONS, CONTRAST FIXES, AND SECURITY INVARIANTS
+================================================================================
+
+- NUMERIC IN NAME FIELDS PROHIBITED:
+  - High-security guard deployed across the application preventing numbers from being submitted in name fields.
+  - Applied to Category Name, Product Name, Business Name, Business Owner Name, User Profile Name, etc.
+  - Handled via the custom regex validation rule: `regex:/^[^0-9]+$/` paired with error message translation.
+- UNIQUE 10-DIGIT PHONE NUMBERS FOR BUSINESSES:
+  - Phone fields must be exactly 10 digits (`digits:10`) and unique database-wide (`unique:businesses,phone`).
+- ROLE CHANGES PROTECTED:
+  - Admin cannot modify roles of registered users. The update controllers (`Admin\UserController` and `Admin\BusinessOwnerController`) restrict edits using role assertions (`if ($user->role !== ROLE...) abort(404)`). Roles are omitted from updating fillable structures, preventing privilege escalation.
+- SETTINGS LINKS CLEANED:
+  - Settings links were removed from user/owner dashboards to avoid redundancy, routing users to update passwords and credentials under the central "Profile" tab instead.
+- PDF CONTRAST VISIBILITY FIXES:
+  - The analytics PDF export template `owner/analytics/pdf.blade.php` uses dedicated, high-contrast inline styling blocks. Tailwind color classes (like `text-slate-300` or `text-slate-400` which render poorly in DOMPDF) are overridden with clear dark color tokens (`#1e293b`, `#475569`) to guarantee readability.
+- CATEGORY FIELD REMOVAL:
+  - Category forms input fields and selects are disabled/removed from business/product creation pages. Categories are nullable database attributes.
+================================================================================

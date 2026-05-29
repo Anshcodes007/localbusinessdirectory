@@ -239,6 +239,64 @@
     </div>
     @endif
 
+    {{-- ─── TOP POSITIVE REVIEWS ─── --}}
+    @if ($topPositiveReviews->isNotEmpty())
+    <div class="section page-break">
+        <div class="section-title">Top Positive Reviews</div>
+        @foreach ($topPositiveReviews as $review)
+            <div class="review-card">
+                <div>
+                    <span class="review-user">{{ $review->user->name ?? 'User' }}</span>
+                    —
+                    @for ($i = 1; $i <= 5; $i++)
+                        <span class="star" style="opacity: {{ $i <= $review->rating ? 1 : 0.2 }}">★</span>
+                    @endfor
+                    @if ($review->verified_purchase)
+                        <span class="verified">✓ Verified Purchase</span>
+                    @endif
+                    <span class="badge badge-positive">{{ $review->sentimentLabel() }}</span>
+                </div>
+                @if ($review->title)
+                    <div style="font-weight: 700; font-size: 11px; margin-top: 3px;">{{ $review->title }}</div>
+                @endif
+                <div class="review-comment">{{ $review->comment }}</div>
+                @if ($review->product)
+                    <div style="font-size: 9px; color: #4338ca; margin-top: 2px; font-weight: 600;">Product: {{ $review->product->name }}</div>
+                @endif
+            </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- ─── TOP NEGATIVE REVIEWS ─── --}}
+    @if ($topNegativeReviews->isNotEmpty())
+    <div class="section">
+        <div class="section-title">Top Negative Reviews</div>
+        @foreach ($topNegativeReviews as $review)
+            <div class="review-card">
+                <div>
+                    <span class="review-user">{{ $review->user->name ?? 'User' }}</span>
+                    —
+                    @for ($i = 1; $i <= 5; $i++)
+                        <span class="star" style="opacity: {{ $i <= $review->rating ? 1 : 0.2 }}">★</span>
+                    @endfor
+                    @if ($review->verified_purchase)
+                        <span class="verified">✓ Verified Purchase</span>
+                    @endif
+                    <span class="badge badge-negative">{{ $review->sentimentLabel() }}</span>
+                </div>
+                @if ($review->title)
+                    <div style="font-weight: 700; font-size: 11px; margin-top: 3px;">{{ $review->title }}</div>
+                @endif
+                <div class="review-comment">{{ $review->comment }}</div>
+                @if ($review->product)
+                    <div style="font-size: 9px; color: #4338ca; margin-top: 2px; font-weight: 600;">Product: {{ $review->product->name }}</div>
+                @endif
+            </div>
+        @endforeach
+    </div>
+    @endif
+
     {{-- ─── INSIGHTS ─── --}}
     @if (count($insights) > 0)
     <div class="section">

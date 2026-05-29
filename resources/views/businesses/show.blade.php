@@ -3,7 +3,7 @@
 @section('content')
 @php
     // Compute review stats
-    $reviews = $business->reviews()->with('user')->latest()->get();
+    $reviews = $business->reviews()->forBusiness($business->id)->with('user')->latest()->get();
     $totalReviews = $reviews->count();
     $avgRating = $totalReviews > 0 ? round($reviews->avg('rating'), 1) : 0;
     $fullStars = (int) floor($avgRating);
