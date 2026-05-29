@@ -87,6 +87,10 @@ class OrderController extends Controller
             abort(403);
         }
 
+        if (in_array($order->status, [Order::STATUS_COMPLETED, Order::STATUS_CANCELLED], true)) {
+            return back()->with('error', 'Completed or cancelled orders cannot be modified.');
+        }
+
         $this->orderService->cancelOrder($order);
 
         return back()->with('success', 'Order cancelled. Stock has been restored.');

@@ -28,6 +28,10 @@ class OwnerOrderController extends Controller
     {
         $this->authorizeOrder($request, $order);
 
+        if (in_array($order->status, [Order::STATUS_COMPLETED, Order::STATUS_CANCELLED], true)) {
+            return back()->with('error', 'Completed or cancelled orders cannot be modified.');
+        }
+
         $validated = $request->validate([
             'status' => ['required', 'in:pending,confirmed,completed,cancelled'],
         ]);

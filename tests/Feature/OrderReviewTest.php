@@ -347,3 +347,83 @@ test('submitting product review with rating modified but empty title/comment fai
         'product_reviews.' . (string) $product->id . '.comment',
     ]);
 });
+
+test('owner cannot change the status of completed or cancelled orders', function () {
+    $owner = User::factory()->create(['role' => User::ROLE_BUSINESS_OWNER]);
+    $customer = getCustomer();
+    
+    $business = Business::create([
+        'user_id' => (string) $owner->id,
+        'name' => 'Owner Pizza',
+        'city' => 'Chicago',
+        'state' => 'IL',
+        'email' => 'ownerpizza@example.com',
+        'phone' => '1234567890',
+        'is_active' => true,
+    ]);
+
+    $completedOrder = Order::create([
+        'user_id' => (string) $customer->id,
+        'user_name' => $customer->name,
+        'user_email' => $customer->email,
+        'business_id' => (string) $business->id,
+        'business_name' => $business->name,
+        'items' => [],
+        'total_price' => 10.00,
+        'status' => 'completed',
+    ]);
+
+    $cancelledOrder = Order::create([
+        'user_id' => (string) $customer->id,
+        'user_name' => $customer->name,
+        'user_email' => $customer->email,
+        'business_id' => (string) $business->id,
+        'business_name' => $business->name,
+        'items' => [],
+        'total_price' => 10.00,
+        'status' => 'cancelled',
+    ]);
+
+    // Try to update completed order to confirmed
+    $response = $this->actingAs($owner)->patch(route('owner.orders.update', $completedOrder), [
+        'status' => 'confirmed',
+    ]);
+    $response->assertSessionHas('error', 'Completed or cancelled orders cannot be modified.');
+    $this->assertEquals('completed', $completedOrder->fresh()->status);
+
+    // Try to update cancelled order to pending
+    $response = $this->actingAs($owner)->patch(route('owner.orders.update', $cancelledOrder), [
+        'status' => 'pending',
+    ]);
+    $response->assertSessionHas('error', 'Completed or cancelled orders cannot be modified.');
+    $this->assertEquals('cancelled', $cancelledOrder->fresh()->status);
+});
+
+test('customer cannot cancel completed or cancelled orders', function () {
+    $customer = getCustomer();
+    
+    $business = Business::create([
+        'user_id' => 'owner123',
+        'name' => 'Pizza House',
+        'city' => 'New York',
+        'state' => 'NY',
+        'email' => 'pizza@example.com',
+        'phone' => '1234567890',
+        'is_active' => true,
+    ]);
+
+    $completedOrder = Order::create([
+        'user_id' => (string) $customer->id,
+        'user_name' => $customer->name,
+        'user_email' => $customer->email,
+        'business_id' => (string) $business->id,
+        'business_name' => $business->name,
+        'items' => [],
+        'total_price' => 15.00,
+        'status' => 'completed',
+    ]);
+
+    $response = $this->actingAs($customer)->patch(route('orders.cancel', $completedOrder));
+    $response->assertSessionHas('error', 'Completed or cancelled orders cannot be modified.');
+    $this->assertEquals('completed', $completedOrder->fresh()->status);
+});

@@ -51,15 +51,19 @@
                             <span class="text-[10px]">{{ $order->created_at->format('h:i A') }}</span>
                         </td>
                         <td class="px-6 py-4">
-                            <form action="{{ route('owner.orders.update', $order) }}" method="POST">
-                                @csrf @method('PATCH')
-                                <select name="status" onchange="this.form.submit()"
-                                        class="text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 px-3 py-1.5 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 cursor-pointer">
-                                    @foreach (['pending', 'confirmed', 'completed', 'cancelled'] as $status)
-                                        <option value="{{ $status }}" @selected($order->status === $status)>{{ ucfirst($status) }}</option>
-                                    @endforeach
-                                </select>
-                            </form>
+                            @if (in_array($order->status, ['completed', 'cancelled'], true))
+                                <x-status-badge :status="$order->status" />
+                            @else
+                                <form action="{{ route('owner.orders.update', $order) }}" method="POST">
+                                    @csrf @method('PATCH')
+                                    <select name="status" onchange="this.form.submit()"
+                                            class="text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 px-3 py-1.5 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 cursor-pointer">
+                                        @foreach (['pending', 'confirmed', 'completed', 'cancelled'] as $status)
+                                            <option value="{{ $status }}" @selected($order->status === $status)>{{ ucfirst($status) }}</option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @endforeach
